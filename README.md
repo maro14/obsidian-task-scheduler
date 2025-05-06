@@ -18,6 +18,7 @@ A plugin for [Obsidian](https://obsidian.md) that automatically schedules tasks 
 2. Go to Community Plugins and disable Safe Mode
 3. Click Browse and search for "Task Scheduler"
 4. Install the plugin and enable it
+5. Restart Obsidian
 
 ### Manual Installation
 
