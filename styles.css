@@ -1,0 +1,101 @@
+.task-scheduler-container {
+    padding: 10px;
+}
+
+.task-scheduler-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+}
+
+.task-scheduler-item:hover {
+    background-color: var(--background-secondary-alt);
+}
+
+.task-scheduler-priority {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-weight: bold;
+    color: white;
+}
+
+.task-scheduler-priority-1 {
+    background-color: #e74c3c; /* High priority */
+}
+
+.task-scheduler-priority-2 {
+    background-color: #f39c12;
+}
+
+.task-scheduler-priority-3 {
+    background-color: #3498db;
+}
+
+.task-scheduler-priority-4 {
+    background-color: #2ecc71;
+}
+
+.task-scheduler-priority-5 {
+    background-color: #95a5a6; /* Low priority */
+}
+
+.task-scheduler-details {
+    flex: 1;
+}
+
+.task-scheduler-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.task-scheduler-metadata {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+}
+
+.task-scheduler-time {
+    margin-left: auto;
+    font-weight: bold;
+}
+
+.task-scheduler-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-top: 20px;
+}
+
+.task-scheduler-day {
+    padding: 10px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+    min-height: 100px;
+}
+
+.task-scheduler-day-header {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.task-scheduler-settings-working-days {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.task-scheduler-day-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}

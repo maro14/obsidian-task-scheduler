@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-task-scheduler",
+  "name": "Task Scheduler",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Automatically schedule tasks based on priority, deadlines, or time estimates. Integrates with the Tasks plugin or creates its own task management system.",
+  "author": "Your Name",
+  "authorUrl": "https://github.com/yourusername",
+  "isDesktopOnly": false
+}
