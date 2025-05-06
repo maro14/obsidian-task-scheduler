@@ -142,6 +142,28 @@ export class Scheduler {
 
   /**
    * Sort tasks by priority, urgency, deadline, and time estimate
+   * 
+   * This algorithm implements a multi-factor sorting strategy to determine
+   * the optimal order for scheduling tasks. The sorting criteria are applied
+   * in the following order:
+   * 
+   * 1. Urgent deadlines (within 48 hours) take highest precedence
+   * 2. Priority level (1-5, where 1 is highest priority)
+   * 3. Deadline proximity (earlier deadlines come first)
+   * 4. Tasks with deadlines before tasks without deadlines
+   * 5. Time estimate (shorter tasks first)
+   * 
+   * This approach ensures that:
+   * - Critical tasks approaching deadlines are handled first
+   * - High priority work is completed before low priority work
+   * - Impending deadlines are respected
+   * - Quick tasks are completed to maximize productivity
+   * 
+   * Edge cases handled:
+   * - Tasks without deadlines are ranked lower but still scheduled
+   * - Equal priority tasks are differentiated by deadline
+   * - Tasks with identical priority and deadline are sorted by duration
+   * 
    * @param tasks Array of tasks to sort
    * @returns Task[] Sorted array of tasks
    */
@@ -182,6 +204,25 @@ export class Scheduler {
 
   /**
    * Find consecutive time slots that can fit a task
+   * 
+   * This algorithm searches for a sequence of available time slots that can
+   * accommodate a task of a specific duration. It handles the complex case of
+   * finding contiguous time periods within a fragmented schedule.
+   * 
+   * The algorithm:
+   * 1. Iterates through available slots chronologically
+   * 2. Skips slots that are already assigned to other tasks
+   * 3. Builds a collection of consecutive slots
+   * 4. Resets the collection when a non-consecutive slot is encountered
+   * 5. Returns the required number of slots when found
+   * 
+   * Edge cases handled:
+   * - Returns empty array if not enough consecutive slots are available
+   * - Handles day boundaries correctly by checking actual timestamps
+   * - Properly accounts for already assigned slots
+   * 
+   * Time complexity: O(n) where n is the number of available slots
+   * 
    * @param slots Available time slots
    * @param slotsNeeded Number of consecutive slots needed
    * @returns TimeSlot[] Array of consecutive slots if found, empty array otherwise
@@ -235,6 +276,20 @@ export class Scheduler {
 
   /**
    * Schedule tasks with deadlines before their due dates
+   * 
+   * This algorithm attempts to schedule tasks with deadlines in a way that
+   * ensures they are completed before their due dates. It:
+   * 
+   * 1. Filters available slots to only include those before the deadline
+   * 2. Calculates how many slots are needed based on the task's time estimate
+   * 3. Finds consecutive slots that can fit the task
+   * 4. Assigns the task to those slots if found
+   * 
+   * Edge cases handled:
+   * - Returns false if no slots are available before the deadline
+   * - Returns false if not enough consecutive slots are available
+   * - Properly handles tasks without deadlines
+   * 
    * @param task Task with a deadline
    * @param availableSlots All available time slots
    * @returns boolean Whether the task was scheduled successfully
@@ -292,9 +347,26 @@ export class Scheduler {
 
   /**
    * Schedule tasks into available time slots
+   * 
+   * This is the main scheduling algorithm that orchestrates the entire
+   * task scheduling process. It implements a two-pass scheduling strategy:
+   * 
+   * First pass: Schedule deadline-driven tasks
+   * - Tasks with deadlines are scheduled first to ensure they're completed on time
+   * - These tasks are placed in slots before their deadlines
+   * 
+   * Second pass: Schedule remaining tasks
+   * - Tasks without deadlines or that couldn't be scheduled before deadlines
+   * - These are placed in any available slots based on priority
+   * 
+   * The algorithm ensures:
+   * - Critical deadline-driven work is prioritized
+   * - All tasks are scheduled if sufficient time slots exist
+   * - Tasks are ordered by priority, urgency, and efficiency
+   * 
    * @param tasks Array of tasks to schedule
    * @param startDate The start date for scheduling
-   * @param daysToSchedule Number of days to schedule ahead
+   * @param daysToSchedule Number of days to schedule ahead (default: 14)
    * @returns Task[] Array of scheduled tasks
    */
   scheduleTasks(

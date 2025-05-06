@@ -76,130 +76,148 @@ export class TasksPluginIntegration {
 
   /**
    * Convert a Tasks plugin task to our Task model
+   * 
+   * This method handles the complex mapping between the Tasks plugin's task format
+   * and our internal Task model. It extracts and transforms metadata from the
+   * Tasks plugin's proprietary format into our standardized format.
+   * 
+   * The conversion process:
+   * 1. Extracts basic task information (description, file, line number, completion status)
+   * 2. Maps Tasks plugin priority levels to our numeric scale (1-5)
+   * 3. Extracts time estimates from custom tags in the description
+   * 4. Maps due dates to our deadline field
+   * 5. Extracts tags, categories, and recurrence patterns
+   * 
+   * Edge cases handled:
+   * - Missing files are handled with appropriate error logging
+   * - Missing metadata uses provided defaults
+   * - Invalid or missing fields are gracefully handled
+   * - Provides fallback task creation if conversion fails
+   * 
    * @param taskItem The Tasks plugin task item
    * @param defaultPriority Default priority if not specified
    * @param defaultTimeEstimate Default time estimate if not specified
    * @returns Task Our Task model
    */
   private convertTasksPluginTask(
-    taskItem: any,
-    defaultPriority: number,
-    defaultTimeEstimate: number
+      taskItem: any,
+      defaultPriority: number,
+      defaultTimeEstimate: number
   ): Task {
-    try {
-      // Extract data from the Tasks plugin task
-      const description = taskItem.description || '';
-
-      // Safely get the file, handling cases where the file might not exist
-      const file = this.app.vault.getAbstractFileByPath(taskItem.path) as TFile;
-      if (!file) {
-        console.warn(`File not found for task: ${description}`);
-        throw new Error('File not found for task');
-      }
-
-      const lineNumber = taskItem.line !== undefined ? taskItem.line : 0;
-      const completed = !!taskItem.checked;
-
-      // Extract priority
-      let priority = defaultPriority;
-      if (taskItem.priority) {
-        // Tasks plugin uses high, medium, low, none
-        switch (taskItem.priority) {
-          case 'high':
-            priority = 1;
-            break;
-          case 'medium':
-            priority = 2;
-            break;
-          case 'low':
-            priority = 4;
-            break;
-          case 'none':
-            priority = 5;
-            break;
+      try {
+        // Extract data from the Tasks plugin task
+        const description = taskItem.description || '';
+  
+        // Safely get the file, handling cases where the file might not exist
+        const file = this.app.vault.getAbstractFileByPath(taskItem.path) as TFile;
+        if (!file) {
+          console.warn(`File not found for task: ${description}`);
+          throw new Error('File not found for task');
         }
-      }
-
-      // Extract time estimate if available
-      let timeEstimate = defaultTimeEstimate;
-      // Tasks plugin doesn't have a built-in time estimate field
-      // We can look for our custom format in the description
-      const timeMatch = description.match(/#time\/([0-9]+)([mh])\b/);
-      if (timeMatch) {
-        const value = parseInt(timeMatch[1]);
-        const unit = timeMatch[2];
-        timeEstimate = unit === 'h' ? value * 60 : value;
-      }
-
-      // Extract deadline from due date
-      let deadline: Date | undefined = undefined;
-      if (taskItem.due) {
-        deadline = new Date(taskItem.due);
-      }
-
-      // Extract tags from the task
-      const tags: string[] = [];
-      if (taskItem.tags && Array.isArray(taskItem.tags)) {
-        tags.push(...taskItem.tags);
-      }
-
-      // Extract category from tags or description
-      let category: string | undefined = undefined;
-      const categoryMatch = description.match(/#category\/(\w+)\b/);
-      if (categoryMatch) {
-        category = categoryMatch[1];
-      }
-
-      // Extract recurrence pattern
-      let recurrence: string | undefined = undefined;
-      if (taskItem.recurrence) {
-        recurrence = taskItem.recurrence;
-      } else {
-        // Try to extract from description
-        const recurrenceMatch = description.match(
-          /#recur\/(daily|weekly|monthly|yearly)\b/
-        );
-        if (recurrenceMatch) {
-          recurrence = recurrenceMatch[1];
+  
+        const lineNumber = taskItem.line !== undefined ? taskItem.line : 0;
+        const completed = !!taskItem.checked;
+  
+        // Extract priority
+        let priority = defaultPriority;
+        if (taskItem.priority) {
+          // Tasks plugin uses high, medium, low, none
+          switch (taskItem.priority) {
+            case 'high':
+              priority = 1;
+              break;
+            case 'medium':
+              priority = 2;
+              break;
+            case 'low':
+              priority = 4;
+              break;
+            case 'none':
+              priority = 5;
+              break;
+          }
         }
+  
+        // Extract time estimate if available
+        let timeEstimate = defaultTimeEstimate;
+        // Tasks plugin doesn't have a built-in time estimate field
+        // We can look for our custom format in the description
+        const timeMatch = description.match(/#time\/([0-9]+)([mh])\b/);
+        if (timeMatch) {
+          const value = parseInt(timeMatch[1]);
+          const unit = timeMatch[2];
+          timeEstimate = unit === 'h' ? value * 60 : value;
+        }
+  
+        // Extract deadline from due date
+        let deadline: Date | undefined = undefined;
+        if (taskItem.due) {
+          deadline = new Date(taskItem.due);
+        }
+  
+        // Extract tags from the task
+        const tags: string[] = [];
+        if (taskItem.tags && Array.isArray(taskItem.tags)) {
+          tags.push(...taskItem.tags);
+        }
+  
+        // Extract category from tags or description
+        let category: string | undefined = undefined;
+        const categoryMatch = description.match(/#category\/(\w+)\b/);
+        if (categoryMatch) {
+          category = categoryMatch[1];
+        }
+  
+        // Extract recurrence pattern
+        let recurrence: string | undefined = undefined;
+        if (taskItem.recurrence) {
+          recurrence = taskItem.recurrence;
+        } else {
+          // Try to extract from description
+          const recurrenceMatch = description.match(
+            /#recur\/(daily|weekly|monthly|yearly)\b/
+          );
+          if (recurrenceMatch) {
+            recurrence = recurrenceMatch[1];
+          }
+        }
+  
+        // Create task metadata
+        const metadata: TaskMetadata = {
+          priority,
+          timeEstimate,
+          deadline,
+          completed,
+          source: file,
+          lineNumber,
+          scheduledTime: undefined,
+          tags,
+          category,
+          recurrence,
+          lastModified: new Date()
+        };
+  
+        return new Task(description, metadata);
+      } catch (error) {
+        console.error('Error converting Tasks plugin task:', error);
+        // Create a fallback task with minimal information
+        const fallbackDescription = taskItem.description || 'Unknown task';
+        const fallbackFile = this.app.workspace.getActiveFile() as TFile;
+  
+        const fallbackMetadata: TaskMetadata = {
+          priority: defaultPriority,
+          timeEstimate: defaultTimeEstimate,
+          completed: false,
+          source: fallbackFile,
+          lineNumber: 0,
+          scheduledTime: undefined,
+          tags: [],
+          lastModified: new Date(),
+        };
+  
+        return new Task(fallbackDescription, fallbackMetadata);
       }
-
-      // Create task metadata
-      const metadata: TaskMetadata = {
-        priority,
-        timeEstimate,
-        deadline,
-        completed,
-        source: file,
-        lineNumber,
-        scheduledTime: undefined,
-        tags,
-        category,
-        recurrence,
-        lastModified: new Date()
-      };
-
-      return new Task(description, metadata);
-    } catch (error) {
-      console.error('Error converting Tasks plugin task:', error);
-      // Create a fallback task with minimal information
-      const fallbackDescription = taskItem.description || 'Unknown task';
-      const fallbackFile = this.app.workspace.getActiveFile() as TFile;
-
-      const fallbackMetadata: TaskMetadata = {
-        priority: defaultPriority,
-        timeEstimate: defaultTimeEstimate,
-        completed: false,
-        source: fallbackFile,
-        lineNumber: 0,
-        scheduledTime: undefined,
-        tags: [],
-        lastModified: new Date(),
-      };
-
-      return new Task(fallbackDescription, fallbackMetadata);
     }
-  }
 
   /**
    * Update a task in the Tasks plugin

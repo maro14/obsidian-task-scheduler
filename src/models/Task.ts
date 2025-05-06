@@ -10,7 +10,7 @@ export interface TaskMetadata {
     lineNumber: number; // Line number in the file
     tags: string[]; // Additional tags for filtering and categorization
     category?: string; // Optional category for grouping tasks
-    recurrence?: string; // Optional recurrence pattern (daily, weekly, monthly)
+    recurrence?: string; // Optional recurrence pattern (daily, weekly, monthly, yearly)
     lastModified: Date; // When the task was last modified
 }
 
@@ -30,13 +30,27 @@ export class Task {
     }
 
     /**
-     * Parse a task from a line of text
+     * Parse a task from a line of text in a markdown file
+     * 
+     * This method handles the complex parsing of task syntax from markdown lines.
+     * It extracts task metadata from various tag formats embedded in the task description.
+     * 
+     * Format examples:
+     * - [ ] Basic task #p1 #time/30m #due/2023-05-15
+     * - [x] Completed task #category/work #recur/weekly
+     * 
+     * Edge cases handled:
+     * - Missing tags will use default values
+     * - Invalid tag formats are ignored
+     * - Tags embedded within the description text are properly extracted
+     * - Multiple tags of the same type will use the first occurrence
+     * 
      * @param line The line of text to parse
      * @param file The file where the task is located
      * @param lineNumber The line number in the file
-     * @param defaultPriority Default priority if not specified
-     * @param defaultTimeEstimate Default time estimate if not specified
-     * @returns A new Task object
+     * @param defaultPriority Default priority if not specified (1-5)
+     * @param defaultTimeEstimate Default time estimate in minutes if not specified
+     * @returns A new Task object or null if the line doesn't match task format
      */
     static fromLine(line: string, file: TFile, lineNumber: number, defaultPriority: number, defaultTimeEstimate: number): Task | null {
         // Basic task regex for standalone mode
@@ -123,8 +137,18 @@ export class Task {
     }
 
     /**
-     * Convert the task back to a line of text
-     * @returns The task as a line of text
+     * Convert the task back to a line of text for storage in markdown
+     * 
+     * This method generates a properly formatted markdown task line with all metadata
+     * encoded as tags. The format follows the convention:
+     * - [ ] Task description #p1 #time/30m #due/2023-05-15 #category/work #recur/weekly
+     * 
+     * Special formatting rules:
+     * - Time estimates are formatted as hours (h) if >= 60 minutes, otherwise as minutes (m)
+     * - Dates are formatted as ISO strings (YYYY-MM-DD)
+     * - Scheduled times include both date and time components (YYYY-MM-DDThh:mm)
+     * 
+     * @returns The task as a properly formatted markdown line
      */
     toLine(): string {
         const checkbox = this.metadata.completed ? '[x]' : '[ ]';
@@ -165,7 +189,11 @@ export class Task {
     }
     
     /**
-     * Check if the task is overdue
+     * Check if the task is overdue based on its deadline
+     * 
+     * A task is considered overdue if its deadline is in the past.
+     * Tasks without deadlines are never considered overdue.
+     * 
      * @returns boolean Whether the task is overdue
      */
     isOverdue(): boolean {
@@ -175,6 +203,14 @@ export class Task {
     
     /**
      * Check if the task is due soon (within the next 48 hours)
+     * 
+     * A task is considered "due soon" if:
+     * 1. It has a deadline
+     * 2. The deadline is in the future
+     * 3. The deadline is within the next 48 hours
+     * 
+     * This is used for UI highlighting and prioritization.
+     * 
      * @returns boolean Whether the task is due soon
      */
     isDueSoon(): boolean {
@@ -188,8 +224,28 @@ export class Task {
     }
     
     /**
-     * Create a recurring instance of this task
-     * @returns Task A new task with updated deadline based on recurrence pattern
+     * Create a recurring instance of this task based on its recurrence pattern
+     * 
+     * This method generates a new task with an updated deadline based on the
+     * recurrence pattern of the current task. The new task is a copy of the
+     * current task with:
+     * 1. Completed status reset to false
+     * 2. A new deadline calculated from the current deadline
+     * 3. Scheduled time cleared (to be rescheduled)
+     * 4. Updated lastModified timestamp
+     * 
+     * Supported recurrence patterns:
+     * - daily: Adds 1 day to the deadline
+     * - weekly: Adds 7 days to the deadline
+     * - monthly: Adds 1 month to the deadline
+     * - yearly: Adds 1 year to the deadline
+     * 
+     * Edge cases:
+     * - Returns null if the task has no recurrence pattern
+     * - Returns null if the task has no deadline
+     * - Returns null if the recurrence pattern is invalid
+     * 
+     * @returns Task A new task with updated deadline or null if not applicable
      */
     createRecurringInstance(): Task | null {
         if (!this.metadata.recurrence || !this.metadata.deadline) return null;
