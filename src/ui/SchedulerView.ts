@@ -4,6 +4,17 @@ import { Task } from '../models/Task';
 
 export const SCHEDULER_VIEW_TYPE = 'task-scheduler-view';
 
+/**
+  * SchedulerView class
+  * This class represents the main view of the Task Scheduler plugin.
+  * It handles the rendering of tasks and their scheduling.  
+  * @method onOpen - Called when the view is opened.
+  * @method refresh - Refreshes the task list and time slots.
+  * @method renderView - Renders the main view of the scheduler.
+  * @method renderTaskItem - Renders an individual task item.
+  * @method renderCalendarView - Renders the calendar view for tasks.
+  * @method renderTaskList - Renders the list of scheduled tasks.
+*/
 export class SchedulerView extends ItemView {
   private scheduler: Scheduler;
   private scheduledTasks: Task[] = [];
